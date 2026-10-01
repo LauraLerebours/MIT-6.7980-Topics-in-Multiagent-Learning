@@ -41,7 +41,7 @@ From now on, we will assume that a two-player game has been defined, and we will
   Consider a two-player zero-sum game, that is, one for which $U_2 = - U_1$. Then, a strategy profile $(vx^(*) \, vy^(*)) in Delta (A_1) times Delta (A_2)$ is a Nash equilibrium if and only if it is a maxmin strategy, _i.e._, if and only if
 
   $
-    vx^(*) in "arg max"_(vx in Delta (A_1)) min_(vy in Delta (A_2)) vx^top U_1 vy \, #h(2em) upright("and") #h(2em) vy^(*) in "arg max"_(vy in Delta (A_2)) min_(vx in Delta (A_1)) vx^top U_2 vy .
+    vx^(*) in argmax_(vx in Delta (A_1)) min_(vy in Delta (A_2)) vx^top U_1 vy \, #h(2em) upright("and") #h(2em) vy^(*) in argmax_(vy in Delta (A_2)) min_(vx in Delta (A_1)) vx^top U_2 vy .
   $
 ]#label("thm:nash is mm")
 
@@ -67,8 +67,8 @@ From now on, we will assume that a two-player game has been defined, and we will
   By the minimax theorem, all inequalities must be equalities; hence, $(vx^(*) \, vy^(*))$ satisfies
 
   $
-    min_(vy in Delta (A_2)) max_(vx in Delta (A_1)) vx^top U_1 vy & = max_(vx in Delta (A_1)) vx^top U_1 vy^(*) & & quad <=> quad vy^(*) in "arg min"_(vy in Delta (A_2)) max_(vx in Delta (A_1)) vx^top U_1 vy\
-    max_(vx in Delta (A_1)) min_(vy in Delta (A_2)) vx^top U_1 vy & = min_(vy in Delta (A_2)) (vx^(*))^top U_1 vy & & quad <=> quad vx^(*) in "arg max"_(vx in Delta (A_1)) min_(vy in Delta (A_2)) vx^top U_1 vy .
+    min_(vy in Delta (A_2)) max_(vx in Delta (A_1)) vx^top U_1 vy & = max_(vx in Delta (A_1)) vx^top U_1 vy^(*) & & quad <=> quad vy^(*) in argmin_(vy in Delta (A_2)) max_(vx in Delta (A_1)) vx^top U_1 vy\
+    max_(vx in Delta (A_1)) min_(vy in Delta (A_2)) vx^top U_1 vy & = min_(vy in Delta (A_2)) (vx^(*))^top U_1 vy & & quad <=> quad vx^(*) in argmax_(vx in Delta (A_1)) min_(vy in Delta (A_2)) vx^top U_1 vy .
   $
 
   $(<==)$~~Conversely, suppose that $vx^(*)$ and $vy^(*)$ are maxmin strategies. Let $v^(*)$ be the common value of both sides of the minimax theorem, that is,
@@ -86,8 +86,8 @@ From now on, we will assume that a two-player game has been defined, and we will
   Using the hypothesis,
 
   $
-    vx^(*) & in "arg max"_(vx in Delta (A_1)) min_(vy in Delta (A_2)) vx^top U_1 vy \, quad & & ==> quad v^(*) = min_(vy in Delta (A_2)) (vx^(*))^top U_1 vy \,\
-    vy^(*) & in "arg min"_(vy in Delta (A_2)) max_(vx in Delta (A_1)) vx^top U_1 vy \, quad & & ==> quad v^(*) = max_(vx in Delta (A_1)) vx^top U_1 vy^(*) .
+    vx^(*) & in argmax_(vx in Delta (A_1)) min_(vy in Delta (A_2)) vx^top U_1 vy \, quad & & ==> quad v^(*) = min_(vy in Delta (A_2)) (vx^(*))^top U_1 vy \,\
+    vy^(*) & in argmin_(vy in Delta (A_2)) max_(vx in Delta (A_1)) vx^top U_1 vy \, quad & & ==> quad v^(*) = max_(vx in Delta (A_1)) vx^top U_1 vy^(*) .
   $
 
   These equalities imply that $v^(*) <= (vx^(*))^top U_1 vy^(*)$ and $v^(*) >= (vx^(*))^top U_1 vy^(*)$, and thus $v^(*) = (vx^(*))^top U_1 vy^(*)$. This shows that the players are best responding to the strategy of the opponent, completing the proof that $(vx^(*) \, vy^(*))$ is a Nash equilibrium.
@@ -95,7 +95,7 @@ From now on, we will assume that a two-player game has been defined, and we will
 
 *Computation*  As we will see shortly, #ref(label("thm:nash is mm")) gives us nontrivial information about the structure of Nash equilibria in two-player zero-sum games. But it also gives us a computational tool. Indeed, the theorem above tells us that finding a Nash equilibrium in a two-player zero-sum game can be expressed as an optimization problem. Let's show that this optimization problem is a linear program. Without loss of generality, let's focus on Player 1's optimization problem, that is,
 
-$ vx^(*) in "arg max"_(vx in Delta (A_1)) min_(vy in Delta (A_2)) vx^top U_1 vy . $
+$ vx^(*) in argmax_(vx in Delta (A_1)) min_(vy in Delta (A_2)) vx^top U_1 vy . $
 
 The key insight is that this problem can be rewritten as
 
