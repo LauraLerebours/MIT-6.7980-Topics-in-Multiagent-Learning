@@ -130,6 +130,9 @@ def render_index(config: dict, modules: list[dict], *, stylesheet_version: str =
         f'<li><a class="person-name" href="{escape(p["url"], quote=True)}">{escape(p["name"])}</a>'
         f'<a href="mailto:{escape(p["email"], quote=True)}">{escape(p["email"])}</a>'
         f'<span>Office {escape(p["office"])}</span></li>' for p in course['instructors'])
+    other_staff = ''.join(
+        f'<li><span class="person-name">{escape(p["name"])}</span></li>'
+        for p in course['other_staff'])
     tas = ''.join(
         f'<li><span class="person-name">{escape(p["name"])}</span>'
         f'<a href="mailto:{escape(p["email"], quote=True)}">{escape(p["email"])}</a>'
@@ -271,6 +274,8 @@ def render_index(config: dict, modules: list[dict], *, stylesheet_version: str =
   <h2>Instructors</h2>
   <ul class="instructor-list">{instructors}</ul>
   <p class="office-hours">{escape(course['meetings'])}</p>
+  <h2 id="other-staff-title">Other Staff</h2>
+  <ul class="other-staff-list" aria-labelledby="other-staff-title">{other_staff}</ul>
   <h2 id="ta-title">Teaching assistants</h2>
   <ul class="ta-list" aria-labelledby="ta-title">{tas}</ul>
 </section>
