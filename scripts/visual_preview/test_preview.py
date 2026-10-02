@@ -3,6 +3,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
+import numpy as np
 import pymupdf
 from PIL import Image
 
@@ -93,6 +94,34 @@ class PreviewTests(unittest.TestCase):
         pdf(self.a, ["Journal of the Society for industrial and Applied Mathematics"])
         pdf(self.b, ["Journal of the Society for Industrial and Applied Mathematics"])
         self.assertEqual(len(self.compare()), 1)
+
+    def test_shifted_gray_separator_is_not_content(self):
+        for path, y in ((self.a, 190), (self.b, 190.4)):
+            doc = pymupdf.open()
+            page = doc.new_page(width=595, height=842)
+            page.insert_text((95, 130), "Unchanged text", fontsize=12)
+            page.draw_rect((95, y, 328, y + .425), color=None, fill=(.8, .8, .8))
+            page.insert_text((95, 215), "Changelog", fontsize=12)
+            doc.save(path)
+            doc.close()
+        self.assertEqual(self.compare(), [])
+
+    def test_display_preserves_continuous_theorem_background(self):
+        lines = [f"Theorem property {i}." for i in range(6)]
+        framed_pdf(self.a, lines, 6)
+        framed_pdf(self.b, lines[:3] + ["Updated property."] + lines[4:], 6)
+        result = self.compare()
+        self.assertEqual(len(result), 1)
+        with Image.open(self.root / "out" / result[0]["file"]) as image:
+            # Inside the box's left padding, three consecutive lines must share
+            # an uninterrupted gray background, without white inter-line strips.
+            strip = np.asarray(image)[60:, image.width // 2 + 150, :]
+            gray = (strip.min(axis=1) > 230) & (strip.max(axis=1) < 250)
+            longest = current = 0
+            for present in gray:
+                current = current + 1 if present else 0
+                longest = max(longest, current)
+            self.assertGreater(longest, 100)
 
     def test_figure_only_change(self):
         pdf(self.a, ["An unchanged caption"], figure=1)

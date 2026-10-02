@@ -24,6 +24,7 @@ class Band:
     bottom: int
     image: Image.Image
     key: str
+    display: Image.Image | None = None
 
 
 def content_ink(page, clip, image):
@@ -52,6 +53,10 @@ def content_ink(page, clip, image):
         if (drawing["type"] == "f" and rect.width < 1.5 and rect.height > 12
                 and .58 < min(color) < .62 and rect.x0 < page.rect.width * .17):
             erase(rect)  # Proof sidebar.
+        elif (drawing["type"] == "f" and rect.height < 1.5
+              and rect.width > page.rect.width * .25 and .78 < min(color) < .82
+              and rect.x0 < page.rect.width * .17):
+            erase(rect)  # Gray separator above the changelog, not a figure.
         elif ("s" in drawing["type"] and drawing["width"] < 1
               and rect.width > page.rect.width * .55 and rect.height > 8):
             # Thin gray outline of a full-width theorem box, including corners.
@@ -96,13 +101,21 @@ def bands(path: Path) -> list[Band]:
                     else:
                         intervals.append((start, y))
                     start = None
-            for top, bottom in intervals:
+            for index, (top, bottom) in enumerate(intervals):
                 text = " ".join(t for a, b, x, t in sorted(lines) if a < bottom and b > top)
                 text = re.sub(r"\s+", " ", text).strip()
                 crop = image.crop((0, max(0, top - 2), image.width, min(image.height, bottom + 2)))
+                # Matching uses tightly cropped lines, but display uses the
+                # original gaps/backgrounds. Share each small gap between its
+                # neighboring lines instead of inserting white strips into boxes.
+                previous = intervals[index - 1][1] if index else 0
+                following = intervals[index + 1][0] if index + 1 < len(intervals) else image.height
+                display_top = top - min(12, (top - previous) // 2)
+                display_bottom = bottom + min(12, (following - bottom + 1) // 2)
+                display = image.crop((0, display_top, image.width, display_bottom))
                 # Identical generic figure keys pair figures in sequence; pixels
                 # determine whether a paired graphic changed.
-                result.append(Band(p + 1, top, bottom, crop, text or "<graphic>"))
+                result.append(Band(p + 1, top, bottom, crop, text or "<graphic>", display))
     return result
 
 
@@ -207,15 +220,15 @@ def contextual_chunks(before, after, group):
 
     def images(row):
         i, j, context = row
-        left = before[i].image if i is not None else None
-        right = after[j].image if j is not None else None
+        left = (before[i].display or before[i].image) if i is not None else None
+        right = (after[j].display or after[j].image) if j is not None else None
         if context:
             left = context_crop(left, context) if left else None
             right = context_crop(right, context) if right else None
         return left, right
 
     def height(row):
-        return max(im.height for im in images(row) if im is not None) + 6
+        return max(im.height for im in images(row) if im is not None)
 
     budget = 1200 - sum(height(row) for row in prefix + suffix)
     chunks, current, used = [], [], 0

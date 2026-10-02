@@ -40,6 +40,8 @@ verify inline rendering in the target client.
 - Crops preserve each line/figure rendering but compact vertical gaps. They are
   for content review, not page-layout proofing. Running footers and page margins
   are excluded using the current course template's dimensions.
+- Small gaps retain their original backgrounds, so shaded boxes remain continuous.
+  Gray changelog separators are treated as decoration, not independent old/new content.
 - Theorem borders and proof sidebars do not join separate text lines when
   matching content, so a page break through an unchanged theorem/proof does not
   appear as a deletion and insertion. Very large edits are split between complete rendered bands, with
