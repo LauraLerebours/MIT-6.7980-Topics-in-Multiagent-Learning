@@ -29,6 +29,7 @@
 
 # Build products, editor state, and local secrets.
 **/target/
+**/node_modules/
 **/__pycache__/
 **/*.pyc
 **/.DS_Store
