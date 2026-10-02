@@ -30,6 +30,17 @@ async function main() {
   try {
     for (const [side, root] of Object.entries(roots)) {
       if (!fs.existsSync(root)) continue;
+      const fontDigest=crypto.createHash('sha256');
+      function hashFonts(folder) {
+        if(!fs.existsSync(folder))return;
+        for(const entry of fs.readdirSync(folder,{withFileTypes:true}).sort((a,b)=>a.name.localeCompare(b.name))) {
+          const file=path.join(folder,entry.name);
+          if(entry.isDirectory())hashFonts(file);
+          else if(entry.isFile()&&/\.(woff2?|ttf|otf)$/i.test(file))fontDigest.update(path.relative(root,file)).update(fs.readFileSync(file));
+        }
+      }
+      hashFonts(path.join(root,'assets'));
+      const fontHash=fontDigest.digest('hex');
       const files = fs.readdirSync(root).filter(f => /^[\w-]+\.html$/.test(f)).sort();
       for (const file of files) for (const width of [1280,390]) {
         const context = await browser.newContext({viewport:{width,height:900},deviceScaleFactor:1,
@@ -64,7 +75,9 @@ async function main() {
               const href=use.getAttribute('href')||use.getAttribute('xlink:href');
               if(href?.startsWith('#')&&!document.getElementById(href.slice(1))) add('broken-svg-reference',href);
             }
-            for(const e of article.querySelectorAll('[data-typst-math]')) {
+            // Equation-line containers repeat the whole Typst expression while
+            // their cells each contain a converted span. Audit those spans once.
+            for(const e of article.querySelectorAll('span[data-typst-math]')) {
               const repr=e.getAttribute('data-typst-math');
               const annotation=e.querySelector('annotation[encoding="application/x-tex"]');
               const raw=e.textContent.trim();
@@ -106,9 +119,11 @@ async function main() {
               const text=(e.innerText||e.textContent||'').replace(/\s+/g,' ').trim();
               if((r.left<bounds.left-3||r.right>bounds.right+3)) add('content-overflow',`${e.tagName}: ${text.slice(0,90)}`);
               if(e.scrollWidth>e.clientWidth+4&&e.clientWidth>0 && ['hidden','clip'].includes(cs.overflowX)) add('clipped-content',`${e.tagName}: ${text.slice(0,90)}`);
-              const styles=[e,...e.querySelectorAll('img,svg,[data-typst-math]')].map(n=>{const s=getComputedStyle(n);return [s.fontFamily,s.fontSize,s.fontWeight,s.fontStyle,s.color,s.backgroundColor,s.overflowX];});
+              const styles=[e,...e.querySelectorAll('*')].filter(n=>n===e||(!n.closest('.katex')&&(!n.closest('svg')||n.tagName.toLowerCase()==='svg'))).map(n=>{
+                const s=getComputedStyle(n);return [s.fontFamily,s.fontSize,s.fontWeight,s.fontStyle,s.color,s.backgroundColor,s.overflowX,s.lineHeight,s.letterSpacing,s.textAlign,s.textDecoration,s.padding,s.margin,s.border,s.borderRadius,s.display,s.visibility,s.opacity,s.transform,s.position,s.left,s.right,s.top,s.bottom,s.backgroundImage.replace(/\/(before|after)\//g,'/')];});
+              const visual=[e,...e.querySelectorAll('img,svg,canvas')].some(n=>/^(img|svg|canvas)$/i.test(n.tagName)&&!n.closest('.katex'));
               return {key:text||e.getAttribute('data-image-source')||e.getAttribute('src')||e.tagName,tag:e.tagName,id:e.id,
-                top:Math.max(0,r.top-bounds.top),bottom:r.bottom-bounds.top,styles};
+                top:Math.max(0,r.top-bounds.top),bottom:r.bottom-bounds.top,width:r.width,visual,styles};
             });
             return {bounds:{width:bounds.width,height:bounds.height},blocks:data,issues,maths,external};
           });
@@ -117,14 +132,14 @@ async function main() {
             const mismatch=accentIssue(math.repr,math.tex);if(mismatch)issue('math-accent',mismatch);
           }
           report.external.push(...snapshot.external.map(url=>({side,page:file,url})));
-          if(snapshot.bounds.height>60000||snapshot.bounds.width>2500) {issue('screenshot-limit','Page exceeds the bounded screenshot size; inspect the HTML artifact.');continue;}
+          if(snapshot.bounds.height>180000||snapshot.bounds.width>2500||snapshot.bounds.width*snapshot.bounds.height>120000000) {issue('screenshot-limit','Page exceeds the bounded screenshot size; inspect the HTML artifact.');continue;}
           const name=`${side}-${file.slice(0,-5)}-${width}.png`;
           let container=page.locator('article.lecture-content');
           if(!await container.count())container=page.locator('main');
           if(!await container.count())container=page.locator('body');
           await container.screenshot({path:path.join(output,name),animations:'disabled',timeout:30000});
           report.pages.push({side,page:file,viewport:width,image:name,blocks:snapshot.blocks,
-            math_count:snapshot.maths.length,hash:crypto.createHash('sha256').update(fs.readFileSync(path.join(output,name))).digest('hex')});
+            font_hash:fontHash,math_count:snapshot.maths.length,hash:crypto.createHash('sha256').update(fs.readFileSync(path.join(output,name))).digest('hex')});
           console.log(`${side} ${file} ${width}px: ${snapshot.blocks.length} blocks`);
         } catch(error) {issue('browser-incomplete',error.message.slice(0,250));}
         finally {await context.close();}

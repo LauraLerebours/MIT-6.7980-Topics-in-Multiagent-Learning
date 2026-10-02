@@ -5,6 +5,10 @@ import json
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
 
+# Browser capture is bounded to 120 million pixels; long mobile lectures can
+# exceed Pillow's default warning threshold. Published crops stay below 10 MP.
+Image.MAX_IMAGE_PIXELS = 150_000_000
+
 
 def crop(image, block):
     return image.crop((0, max(0, round(block['top'])), image.width,
@@ -29,11 +33,19 @@ def differs(a, b):
 def changed_blocks(left, right, old, new):
     a, b = left['blocks'], right['blocks']
     changes = []
+    def block_changed(x,y):
+        if x['styles']!=y['styles'] or abs((x['bottom']-x['top'])-(y['bottom']-y['top']))>2 or abs(x.get('width',0)-y.get('width',0))>2:
+            return True
+        # Equal text, styles and layout can rasterize slightly differently after
+        # moving by a fractional CSS pixel. Only artwork (or changed font files)
+        # needs a pixel comparison in addition to the semantic/style comparison.
+        raster=x.get('visual',True) or y.get('visual',True) or left.get('font_hash')!=right.get('font_hash')
+        return raster and differs(crop(old,x),crop(new,y))
     matcher = SequenceMatcher(None, [x['key'] for x in a], [x['key'] for x in b], autojunk=False)
     for tag, i, j, k, l in matcher.get_opcodes():
         if tag == 'equal':
             for ai, bi in zip(range(i, j), range(k, l)):
-                if a[ai]['styles'] != b[bi]['styles'] or differs(crop(old, a[ai]), crop(new, b[bi])):
+                if block_changed(a[ai],b[bi]):
                     changes.append((ai, ai+1, bi, bi+1))
         else:
             # Do not call unchanged content a deletion merely because its order changed.
@@ -100,7 +112,7 @@ def panels(left, right, output, stem, metadata, leading=(None,None), trailing=(N
 
 
 def compare(browser_folder, output):
-    data = json.loads((browser_folder/'browser.json').read_text())
+    data = json.loads((browser_folder/'browser.json').read_text(encoding='utf-8'))
     pages = {(p['side'],p['page'],p['viewport']):p for p in data['pages']}
     regions=[]
     for page,width in sorted({(p['page'],p['viewport']) for p in data['pages']}):

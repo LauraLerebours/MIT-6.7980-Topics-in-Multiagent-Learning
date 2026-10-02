@@ -30,6 +30,16 @@ class DiffTests(unittest.TestCase):
         blocks={'blocks':[self.block('caption',0,100)]}
         self.assertEqual(changed_blocks(blocks,blocks,a,b),[(0,1,0,1)])
 
+    def test_text_rasterization_does_not_create_false_changes(self):
+        a=Image.new('RGB',(100,100),'white')
+        b=Image.new('RGB',(100,100),'gray')
+        block={**self.block('same text',0,100),'visual':False}
+        left=dict(blocks=[block],font_hash='same')
+        right=dict(blocks=[block],font_hash='same')
+        self.assertEqual(changed_blocks(left,right,a,b),[])
+        right['font_hash']='new font bytes'
+        self.assertEqual(changed_blocks(left,right,a,b),[(0,1,0,1)])
+
     def test_continuation_uses_single_column(self):
         with tempfile.TemporaryDirectory() as tmp:
             regions=panels(Image.new('RGB',(100,100),'white'),Image.new('RGB',(100,3000),'white'),Path(tmp),'test',dict(page='x.html',viewport=390))
