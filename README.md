@@ -153,12 +153,12 @@ With Python **3.10 or later** and Make installed, `make check-pdf` checks that
 all lecture and supplementary notes compile.
 
 To check the website too, also install a current stable Rust toolchain with
-Cargo, Node.js **22 or later**, Poppler (providing `pdfinfo`), and the Georgia
+Cargo, Node.js **22 or later**, Chrome or Chromium, Poppler (providing `pdfinfo`), and the Georgia
 font used in website figures. See the [build guide](docs/building.md) for font
 requirements and figure workflows. Initial builds download dependencies.
 
 ```sh
-make html       # build the website and PDFs
+make html       # build the website and PDFs, including interactive slide PDFs
 make force      # rebuild everything, bypassing incremental caches
 make check      # run tests and validate the built website
 make serve      # serve the result locally; stop with Ctrl+C
