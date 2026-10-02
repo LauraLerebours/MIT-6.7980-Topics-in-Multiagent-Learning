@@ -175,9 +175,11 @@ In the general two-player case, often referred to as _two-player general-sum gam
 
 *Computation*  In two-player general-sum games, computation of Nash equilibria is not a linear program. However, it is a _linear complementarity problem_ (LCP), a more general class of problems than linear feasibility programs, and which are written in the form
 
-$
-  upright("find") quad vx \, vw in bb(R)^d #h(2em) upright("s.t.") #h(2em) vw = M vx + vq \, #h(2em) vx \, vw >= 0 \, #h(2em) vx^top vw = 0 .
-$ <eq:lcp-general>
+#math.equation(
+  block: true,
+  numbering: "(1)",
+  $upright("find") quad vx \, vw in bb(R)^d #h(2em) upright("s.t.") #h(2em) vw = M vx + vq \, #h(2em) vx \, vw >= 0 \, #h(2em) vx^top vw = 0 .$.body,
+) <eq:lcp-general>
 
 The Lemke-Howson algorithm is a well-known algorithm to solve LCPs, and it can be used to find Nash equilibria in two-player general-sum games. However, the algorithm is not polynomial-time in the worst case, and it can be hard to find Nash equilibria in practice. An important corollary of the connection between two-player general-sum games and LCPs is the following:
 
@@ -369,6 +371,55 @@ The concept of _correlated equilibrium_ is an intermediate relaxation between Na
 All remarks made about the computation of CCEs in normal-form games apply to CEs as well. In particular, the set of CEs is a convex polytope, and a CE can be computed in polynomial time using linear programming.
 
 However, the remark about computation in imperfect-information sequential games does not apply to CEs. Whether a CE can be computed efficiently in such games is an open question in the field. Some mild evidence suggests that the problem might be hard. Intuitively, the issue is that the number of functions $phi.alt$ in those games might be too large to control.
+
+Say an action $a_i in A_i$ is _dominated_ by another action $a_i^(*) in A_i$ if, for every combination of actions $a_(- i) in A_(- i)$ chosen by the other players, $a_i^(*)$ always yields a strictly higher payoff for player $i$ than $a_i$, that is, $u_i (a_i^(*) \, a_(- i)) > u_i (a_i \, a_(- i))$.
+
+#exercise[A dominated action is never recommended by a correlated equilibrium][
+  Show that a dominated action cannot be in the support of any correlated equilibrium, in any $n$-player game. In other words, any correlated equilibrium must place zero probability on every action tuple that contains a dominated action $a_i$.
+] <ex:dominated-ce>
+
+#solution[
+  Fix a player $i$ and suppose $a_i in A_i$ is dominated by $a_i^(*)$. Let $vmu$ be a correlated equilibrium (@def-ce), and apply its defining condition to the deviation function $phi.alt_i$ that swaps $a_i$ for $a_i^(*)$ and leaves every other action unchanged, that is $phi.alt_i (a_i) = a_i^(*)$ and $phi.alt_i (x) = x$ for $x != a_i$. Since $phi.alt_i$ is the identity away from $a_i$, every pure outcome in which player $i$'s realized action differs from $a_i$ contributes the same term to both sides of the defining inequality and cancels; only the outcomes where player $i$ actually plays $a_i$ survive:
+
+  $
+    0 >= EE_vmu [u_i (phi.alt_i (a_i) \, a_(- i))] - EE_vmu [u_i (a_i \, a_(- i))] = sum_(a_(- i) in A_(- i)) mu_(a_i \, a_(- i)) [u_i (a_i^(*) \, a_(- i)) - u_i (a_i \, a_(- i))] .
+  $
+
+  Every term on the right is a nonnegative probability $mu_(a_i \, a_(- i))$ times a strictly positive quantity, by domination. A sum of such nonnegative terms can only be $<= 0$ if every term is exactly $0$, so $mu_(a_i \, a_(- i)) = 0$ for every $a_(- i) in A_(- i)$. Hence $vmu$ places zero probability on every action tuple in which player $i$ plays $a_i$.
+]
+
+#exercise[A dominated action can appear in a coarse correlated equilibrium][
+  Show that #ref(<ex:dominated-ce>, supplement: none) fails for coarse correlated equilibria, by exhibiting a game together with a CCE of that game whose support includes a dominated action.
+]
+
+#solution[
+  Consider a two-player game where Player 1 has actions ${ U \, M \, D }$, Player 2 has actions ${ L \, R }$, Player 2's payoff is identically $0$, and Player 1's payoffs are
+
+  #align(center)[
+    #table(
+      stroke: none,
+      columns: 3,
+      align: center + horizon,
+      inset: .7em,
+      [], [$L$], [$R$],
+      [$U$], [$1$], [$1$],
+      [$M$], [$3$], [$0$],
+      [$D$], [$0$], [$0$],
+    )
+  ]
+
+  Action $D$ is dominated by $U$: $u_1 (U \, L) = 1 > 0 = u_1 (D \, L)$ and $u_1 (U \, R) = 1 > 0 = u_1 (D \, R)$.
+
+  Let $vmu$ place probability $1 \/ 2$ on $(M \, L)$ and probability $1 \/ 2$ on $(D \, R)$. Player 2's payoff is identically $0$, so every CCE constraint for Player 2 holds trivially. For Player 1, the realized payoff is $EE_vmu [u_1 (a_1 \, a_2)] = (1 \/ 2) dot.op 3 + (1 \/ 2) dot.op 0 = 3 \/ 2$, and every constant deviation satisfies the CCE constraint:
+
+  $
+    EE_vmu [u_1 (U \, a_2)] = (1 \/ 2) dot.op 1 + (1 \/ 2) dot.op 1 = 1 <= 3 \/ 2 \, #h(1.5em) EE_vmu [u_1 (M \, a_2)] = 3 \/ 2 <= 3 \/ 2 \, #h(1.5em) EE_vmu [u_1 (D \, a_2)] = 0 <= 3 \/ 2 .
+  $
+
+  So $vmu$ is a CCE, yet it places probability $1 \/ 2$ on the dominated action $D$.
+
+  Intuitively, deviating to the constant action $U$ is unattractive precisely because it also gives up the high payoff $M$ earns whenever the correlation device happens to recommend $(M \, L)$; a coarse deviation must commit to a single action before observing the recommendation, so it cannot exploit the conditional swap used in #ref(<ex:dominated-ce>, supplement: none).
+]
 
 == How to think about correlated play in games
 
