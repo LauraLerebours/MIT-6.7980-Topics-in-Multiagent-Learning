@@ -8,7 +8,7 @@ are needed.
 
 The `Typst visual preview` run contains full PDFs, compiler logs and every crop
 in the `typst-visual-preview` artifact (retained for 14 days). The comment displays
-up to 12 crops, and explicitly reports truncation or compilation failure.
+up to 60 crops, and explicitly reports truncation or compilation failure.
 
 ## Installation
 
@@ -42,9 +42,9 @@ verify inline rendering in the target client.
   are excluded using the current course template's dimensions.
 - Reflow of framed theorems across page boundaries can appear as a local layout
   change. Very large edits are split between complete rendered bands, with
-  preceding and following context repeated in each tile. Corresponding context
-  is vertically aligned; an inserted passage occupies space only on the new
-  side. HTML output is not compared.
+  preceding context in the first tile and following context in the last.
+  Corresponding context is vertically aligned. Middle tiles containing only
+  inserted/deleted content use a single column. HTML output is not compared.
 
 ## Trust boundary
 

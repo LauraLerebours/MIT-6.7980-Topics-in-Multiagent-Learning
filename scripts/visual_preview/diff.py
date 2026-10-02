@@ -152,7 +152,7 @@ def context_crop(image, edge, limit=180):
 
 
 def contextual_chunks(before, after, group):
-    """Align context anchors and repeat them around each long-change panel."""
+    """Align anchors, keeping context only at the ends of a continuous change."""
     a, b, c, d, left_changes, right_changes = group
     matcher = SequenceMatcher(None, [x.key for x in before[a:b]], [x.key for x in after[c:d]], autojunk=False)
     rows = []
@@ -186,12 +186,15 @@ def contextual_chunks(before, after, group):
         row = (i, j, None)
         size = height(row)
         if current and used + size > budget:
-            chunks.append(prefix + current + suffix)
+            chunks.append(current)
             current, used = [], 0
         current.append(row)
         used += size
     if current:
-        chunks.append(prefix + current + suffix)
+        chunks.append(current)
+    if chunks:
+        chunks[0] = prefix + chunks[0]
+        chunks[-1] = chunks[-1] + suffix
     return chunks, images, height
 
 
@@ -222,16 +225,24 @@ def compare(before_pdf: Path | None, after_pdf: Path | None, out: Path, name: st
                 left = empty_panel(width, h, "Before")
             if rp == "none":
                 right = empty_panel(width, h, "After")
-            result = Image.new("RGB", (left.width + right.width + 24, h + 60), "#eaeef2")
+            continuation = count > 2 and 0 < index < count - 1
+            single_side = continuation and (lp == "none" or rp == "none")
+            result = Image.new("RGB", (width + 16 if single_side else left.width + right.width + 24, h + 60), "#eaeef2")
             draw = ImageDraw.Draw(result)
             font = ImageFont.load_default(size=22)
             suffix = f"  |  part {index + 1}/{count}" if count > 1 else ""
             left_label = f"page {lp}" if lp != "none" else "no corresponding content"
             right_label = f"page {rp}" if rp != "none" else "no corresponding content"
-            draw.text((12, 16), f"BEFORE  |  {left_label}{suffix}", font=font, fill="#9a1e2b")
-            draw.text((left.width + 24, 16), f"AFTER  |  {right_label}{suffix}", font=font, fill="#116329")
-            for x, im in ((8, left), (left.width + 16, right)):
-                result.paste(im, (x, 54))
+            if single_side:
+                added = lp == "none"
+                label = f"ADDED  |  page {rp}" if added else f"DELETED  |  page {lp}"
+                draw.text((12, 16), label + suffix, font=font, fill="#116329" if added else "#9a1e2b")
+                result.paste(right if added else left, (8, 54))
+            else:
+                draw.text((12, 16), f"BEFORE  |  {left_label}{suffix}", font=font, fill="#9a1e2b")
+                draw.text((left.width + 24, 16), f"AFTER  |  {right_label}{suffix}", font=font, fill="#116329")
+                for x, im in ((8, left), (left.width + 16, right)):
+                    result.paste(im, (x, 54))
             filename = f"{name}-{n:02d}-{index + 1:02d}.png"
             result.save(out / filename)
             regions.append({"file": filename, "before_pages": lp, "after_pages": rp,

@@ -13,7 +13,7 @@ from PIL import Image
 
 MARKER = "<!-- typst-visual-preview:v1 -->"
 BRANCH = "visual-previews"
-MAX_IMAGES = 12
+MAX_IMAGES = 60
 SAFE_SOURCE = re.compile(r"content/[A-Za-z0-9_-]+\.typ\Z")
 SAFE_IMAGE = re.compile(r"[A-Za-z0-9_-]+\.png\Z")
 
@@ -172,7 +172,7 @@ def main():
         print(f"Preview unavailable: {type(error).__name__}")
         body += ["The preview could not be built or validated. See the build logs.", ""]
     body += [f"[Build logs, complete PDFs and all crops]({run_url}) · PDF preview only; HTML is not compared.",
-             "", "<sub>Long changes repeat surrounding context in each panel. Matching context is aligned on both sides; blank space marks inserted or deleted content. Running footers are omitted.</sub>"]
+             "", "<sub>Continuous changes show preceding context only in the first panel and following context only in the last. Pure additions/deletions in middle panels use one column. Running footers are omitted.</sub>"]
     # Recheck immediately before writing: a newer student commit makes this run stale.
     if api("GET", f"pulls/{number}")["head"]["sha"] != head:
         return

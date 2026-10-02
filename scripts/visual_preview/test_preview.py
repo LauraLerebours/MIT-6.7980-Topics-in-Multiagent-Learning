@@ -76,17 +76,23 @@ class PreviewTests(unittest.TestCase):
         self.assertEqual(len(chunks), 2)
         self.assertEqual(sum(len(chunk) for chunk in chunks), len(items))
 
-    def test_long_addition_repeats_old_context_on_every_panel(self):
+    def test_long_addition_keeps_context_only_at_the_ends(self):
         pdf(self.a, ["Opening", "Closing"])
         pdf(self.b, ["Opening"] + [f"Inserted explanatory line {i}" for i in range(65)] + ["Closing"])
         result = self.compare()
         self.assertGreater(len(result), 1)
-        self.assertTrue(all(region["before_pages"] == "1" for region in result))
+        self.assertEqual(result[0]["before_pages"], "1")
+        self.assertEqual(result[-1]["before_pages"], "1")
+        self.assertTrue(all(region["before_pages"] == "none" for region in result[1:-1]))
         self.assertEqual(result[-1]["part"], result[-1]["parts"])
         with Image.open(self.root / "out" / result[-1]["file"]) as image:
-            # Every old-side pane retains the context instead of being blank.
+            # The last old-side pane retains the following context.
             colors = image.crop((20, 60, image.width // 2 - 30, image.height - 20)).getcolors(100000)
             self.assertGreater(len(colors), 2)
+        if len(result) > 2:
+            with Image.open(self.root / "out" / result[0]["file"]) as first:
+                with Image.open(self.root / "out" / result[1]["file"]) as middle:
+                    self.assertLess(middle.width, first.width * .6)
 
     def test_publisher_rejects_path_and_stale_report(self):
         report = {"version": 1, "pr": 3, "base": "a", "head": "b", "notes": [
