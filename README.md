@@ -138,6 +138,10 @@ and state whether you checked the Tinymist preview, compiled a PDF, or ran
 the website checks.
 Further commits pushed to the same branch update the pull request.
 
+PRs also receive [automated source and HTML checks](docs/pr-checks.md), including
+desktop/mobile HTML comparison images alongside the PDF preview. These checks
+help catch rendering and integration problems; they do not replace mathematical review.
+
 ## Optional command-line and website checks
 
 To compile an individual note from a terminal, install the

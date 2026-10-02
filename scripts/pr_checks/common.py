@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import time
 
@@ -35,6 +36,12 @@ def arguments(kind):
 
 
 def prepare(args, report):
+    missing=[name for name in ('typst','pdfinfo','node') if not shutil.which(name)]
+    if missing:
+        raise RuntimeError('Missing check dependencies: '+', '.join(missing))
+    status,fonts=command(['typst','fonts'])
+    if status or 'Georgia' not in fonts.splitlines():
+        raise RuntimeError('Georgia must be installed for the course regression suite and figures')
     git = ["git", "-C", str(args.checkout)]
     status, sha = command(git + ["rev-parse", "HEAD"])
     if status or sha.strip() != args.head:
@@ -82,8 +89,9 @@ def run_check(report, output, name, side, cmd, root, timeout=900, env=None):
 
 
 def finish(args, report):
-    report["findings"] = report["findings"][:2000]
     report["failed"] = any(x["level"] == "error" for x in report["findings"])
+    report['coverage']['findings_total']=len(report['findings'])
+    report["findings"] = sorted(report["findings"],key=lambda x:(x['level']!='error',bool(x.get('inherited'))))[:2000]
     (args.output / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     lines = [f"## {report['kind']} PR check", "",
              f"Compared target `{args.base[:7]}` with PR `{args.head[:7]}` integrated into it.", ""]

@@ -71,19 +71,39 @@ async function main() {
               if(e.querySelector('.katex-error')) add('katex-error',raw.slice(0,180));
               else if(e.classList.contains('math-katex-source')&&raw&&!annotation) add('unrendered-math',raw.slice(0,180));
               else if(!e.classList.contains('math-katex-source') && e.querySelector('svg')) add('svg-math-fallback',repr.slice(0,160),'warning');
+              if(annotation && window.katex) {
+                try {
+                  window.katex.renderToString(annotation.textContent,{throwOnError:true,
+                    displayMode:e.getAttribute('data-math-display')==='block',
+                    strict:code=>code==='unknownSymbol'?'error':'ignore',macros:{'\\nicefrac':'{\\,^{#1}\\!/\\!_{#2}}'}});
+                } catch(error) {add('katex-parse',error.message.slice(0,220));}
+              }
               maths.push({repr,tex:annotation?.textContent||null});
             }
             for(const a of document.querySelectorAll('a[href]')) {
               const href=a.getAttribute('href');
               if(/^https?:\/\//.test(href)) external.push(href);
             }
-            const candidates=[...article.querySelectorAll('h1,h2,h3,h4,h5,p,figure,pre,ul,ol,table,details,.statement,.proof')]
-              .filter(e=>visible(e)&&!e.closest('.sidenote,.margin-note,.lecture-citation-details'));
+            const rail='.sidenote,.margin-note,.citation-note,.course-sidenote,.lecture-citation-sidenote,.lecture-citation-details';
+            for(const e of article.querySelectorAll('img,svg,.katex-display,.equation,pre,table')) {
+              if(!visible(e)||e.closest(rail))continue;
+              const r=e.getBoundingClientRect();
+              let scrollable=false;
+              for(let p=e;p&&p!==article;p=p.parentElement) {
+                const style=getComputedStyle(p);
+                if(['auto','scroll'].includes(style.overflowX))scrollable=true;
+                if(['hidden','clip'].includes(style.overflowX)&&p.scrollWidth>p.clientWidth+4)
+                  add('clipped-content',`${p.tagName}: ${p.textContent.trim().slice(0,90)}`);
+              }
+              if(!scrollable&&(r.left<bounds.left-3||r.right>bounds.right+3))add('content-overflow',`${e.tagName}: ${e.textContent.trim().slice(0,90)}`);
+            }
+            const candidates=[...article.querySelectorAll('h1,h2,h3,h4,h5,p,figure,pre,ul,ol,li,table,details,.statement,.proof')]
+              .filter(e=>visible(e)&&!e.closest(rail));
             const selected=new Set(candidates);
             const blocks=candidates.filter(e=>{for(let p=e.parentElement;p&&p!==article;p=p.parentElement)if(selected.has(p)&&p.getBoundingClientRect().height<1000)return false;return e.getBoundingClientRect().height<1000||!e.querySelector('p,figure,li');});
             const data=blocks.map(e=>{
               const r=e.getBoundingClientRect(),cs=getComputedStyle(e);
-              if((r.left<bounds.left-3||r.right>bounds.right+3)&&!e.closest('.sidenote,.margin-note')) add('content-overflow',`${e.tagName}: ${e.innerText.slice(0,90)}`);
+              if((r.left<bounds.left-3||r.right>bounds.right+3)) add('content-overflow',`${e.tagName}: ${e.innerText.slice(0,90)}`);
               if(e.scrollWidth>e.clientWidth+4&&e.clientWidth>0 && ['hidden','clip'].includes(cs.overflowX)) add('clipped-content',`${e.tagName}: ${e.innerText.slice(0,90)}`);
               const text=e.innerText.replace(/\s+/g,' ').trim();
               const styles=[e,...e.querySelectorAll('img,svg,[data-typst-math]')].map(n=>{const s=getComputedStyle(n);return [s.fontFamily,s.fontSize,s.fontWeight,s.fontStyle,s.color,s.backgroundColor,s.overflowX];});
@@ -99,8 +119,10 @@ async function main() {
           report.external.push(...snapshot.external.map(url=>({side,page:file,url})));
           if(snapshot.bounds.height>60000||snapshot.bounds.width>2500) {issue('screenshot-limit','Page exceeds the bounded screenshot size; inspect the HTML artifact.');continue;}
           const name=`${side}-${file.slice(0,-5)}-${width}.png`;
-          await (page.locator('article.lecture-content').count().then(n=>n?page.locator('article.lecture-content'):
-            page.locator('main').count().then(n=>n?page.locator('main'):page.locator('body')))).then(l=>l.screenshot({path:path.join(output,name),animations:'disabled',timeout:30000}));
+          let container=page.locator('article.lecture-content');
+          if(!await container.count())container=page.locator('main');
+          if(!await container.count())container=page.locator('body');
+          await container.screenshot({path:path.join(output,name),animations:'disabled',timeout:30000});
           report.pages.push({side,page:file,viewport:width,image:name,blocks:snapshot.blocks,
             math_count:snapshot.maths.length,hash:crypto.createHash('sha256').update(fs.readFileSync(path.join(output,name))).digest('hex')});
           console.log(`${side} ${file} ${width}px: ${snapshot.blocks.length} blocks`);

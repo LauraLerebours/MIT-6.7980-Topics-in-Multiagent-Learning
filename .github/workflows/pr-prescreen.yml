@@ -28,7 +28,7 @@ jobs:
         id: pr
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python3 tooling/scripts/visual_preview/resolve.py
+        run: python3 tooling/scripts/pr_checks/resolve.py
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: refs/pull/${{ steps.pr.outputs.pr_number }}/head
@@ -40,6 +40,9 @@ jobs:
           python-version: '3.12'
       - name: Install test dependencies
         run: |
+          echo 'ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true' | sudo debconf-set-selections
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ttf-mscorefonts-installer poppler-utils
           python -m pip install -r tooling/scripts/visual_preview/requirements.txt
           curl -fsSL https://github.com/typst/typst/releases/download/v0.15.1/typst-x86_64-unknown-linux-musl.tar.xz -o /tmp/typst.tar.xz
           tar -xJf /tmp/typst.tar.xz -C /tmp

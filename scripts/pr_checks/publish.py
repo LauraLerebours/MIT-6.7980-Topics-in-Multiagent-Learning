@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import re
 import sys
+from urllib.parse import quote
 
 from PIL import Image
 
@@ -82,7 +83,8 @@ def main():
         print('Skipping stale or unrelated run')
         return
     pr=prs[0]
-    number,base,head=pr['number'],pr['base']['sha'],pr['head']['sha']
+    number,head=pr['number'],pr['head']['sha']
+    base=api('GET','git/ref/heads/'+quote(pr['base']['ref'],safe=''))['object']['sha']
     if metadata['base']!=base:
         print('Target branch changed; rerun against its current revision')
         return
@@ -115,7 +117,8 @@ def main():
     body += ['',f"[Checks, full findings, screenshots and logs](https://github.com/{github.repo}/actions/runs/{run['id']})",'',
              'Deterministic checks only; no AI review. This does not establish mathematical correctness.']
     current=api('GET',f'pulls/{number}')
-    if (current['base']['sha'],current['head']['sha'])!=(base,head):
+    current_base=api('GET','git/ref/heads/'+quote(current['base']['ref'],safe=''))['object']['sha']
+    if (current_base,current['head']['sha'])!=(base,head):
         return
     comment=None
     for page in range(1,101):

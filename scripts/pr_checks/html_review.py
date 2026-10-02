@@ -7,6 +7,7 @@ import sys
 
 from common import arguments, finish, prepare, run_check
 from html_diff import compare
+from external_links import audit as audit_external
 
 
 def classify(findings):
@@ -80,13 +81,16 @@ def main():
             else:
                 browser=json.loads((screenshots/'browser.json').read_text())
                 findings.extend(browser['findings'])
+                external,count=audit_external(browser['external'])
+                findings.extend(external)
+                report['coverage']['external_links_checked']=count
                 report['coverage']['pages']=len(browser['pages'])
                 report['regions'],limited=compare(screenshots,args.output)
                 report['coverage']['diff_limited']=limited
             report['findings'].extend(classify(findings))
             if not (after/'html/index.html').is_file() or not (before/'html/index.html').is_file():
                 report['findings'].append(dict(level='error',code='comparison-incomplete',page='',message='Both generated sites are required for a complete HTML comparison.'))
-            report['coverage']['html']='All configured pages; 1280px and 390px Chromium; open solutions; local assets and anchors; source image inventory; KaTeX parsing and accent metadata; overflow, SVG references and browser errors. External URLs are listed in browser.json but are not guaranteed reachable.'
+            report['coverage']['html']='All configured pages; 1280px and 390px Chromium; open solutions; local assets and anchors; source image inventory; KaTeX parsing and accent metadata; overflow, SVG references and browser errors. Up to 80 new external URLs are checked: 404/410 fail; blocked or inconclusive requests warn.'
     except Exception as error:
         report['findings'].append(dict(level='error',code='check-incomplete',page='',message=str(error)[:1000]))
     return finish(args,report)

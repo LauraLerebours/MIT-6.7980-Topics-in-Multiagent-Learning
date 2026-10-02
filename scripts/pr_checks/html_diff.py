@@ -3,7 +3,7 @@ from difflib import SequenceMatcher
 from pathlib import Path
 import json
 
-from PIL import Image, ImageChops, ImageDraw
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 
 def crop(image, block):
@@ -14,11 +14,16 @@ def crop(image, block):
 def differs(a, b):
     if abs(a.width - b.width) > 1 or abs(a.height - b.height) > 2:
         return True
-    b = b.resize(a.size)
     # Subpixel rasterization can shift with the vertical position of an unchanged block.
-    delta = ImageChops.difference(a.convert('RGB'), b.convert('RGB'))
-    changed = delta.convert('L').point(lambda x: 255 if x > 35 else 0).histogram()[255]
-    return changed / max(1, a.width * a.height) > .012
+    width,height=min(a.width,b.width),min(a.height,b.height)
+    a=a.convert('RGB').filter(ImageFilter.GaussianBlur(.7))
+    b=b.convert('RGB').filter(ImageFilter.GaussianBlur(.7))
+    if height<7:return False
+    for offset in (-2,-1,0,1,2):
+        delta=ImageChops.difference(a.crop((0,2,width,height-2)),b.crop((0,2+offset,width,height-2+offset)))
+        changed=delta.convert('L').point(lambda x:255 if x>40 else 0).histogram()[255]
+        if changed/max(1,width*(height-4))<=.012:return False
+    return True
 
 
 def changed_blocks(left, right, old, new):
@@ -57,13 +62,27 @@ def strip(image, blocks, start, end):
                        min(image.height, int(blocks[end-1]['bottom'])+4)))
 
 
-def panels(left, right, output, stem, metadata):
-    height = 1450
+def join(images):
+    images=[image for image in images if image is not None]
+    if not images:
+        return None
+    result=Image.new('RGB',(max(image.width for image in images),sum(image.height for image in images)+6*(len(images)-1)),'white')
+    top=0
+    for image in images:
+        result.paste(image,(0,top))
+        top+=image.height+6
+    return result
+
+
+def panels(left, right, output, stem, metadata, leading=(None,None), trailing=(None,None)):
+    height = 1100
     count = max(1, *((image.height+height-1)//height for image in (left,right) if image))
     result = []
     for part in range(count):
         a = left.crop((0,part*height,left.width,min(left.height,(part+1)*height))) if left and part*height<left.height else None
         b = right.crop((0,part*height,right.width,min(right.height,(part+1)*height))) if right and part*height<right.height else None
+        a=join([leading[0] if part==0 else None,a,trailing[0] if part==count-1 else None])
+        b=join([leading[1] if part==0 else None,b,trailing[1] if part==count-1 else None])
         # Continuations without an old/new counterpart use one column.
         columns = [(a,'BEFORE','#b42332'),(b,'AFTER','#197539')]
         columns = [x for x in columns if x[0]]
@@ -91,9 +110,15 @@ def compare(browser_folder, output):
         new = Image.open(browser_folder/right['image']).convert('RGB') if 'image' in right else Image.new('RGB',(width,1),'white')
         for n,(i,j,k,l) in enumerate(changed_blocks(left,right,old,new)):
             # Include one preceding/following block. Do not repeat it in continuation panels.
-            a=strip(old,left['blocks'],max(0,i-1),min(len(left['blocks']),j+1))
-            b=strip(new,right['blocks'],max(0,k-1),min(len(right['blocks']),l+1))
-            regions.extend(panels(a,b,output,f'{Path(page).stem}-{width}-{n+1}',dict(page=page,viewport=width)))
+            a=strip(old,left['blocks'],i,j)
+            b=strip(new,right['blocks'],k,l)
+            def context(image,blocks,index,before):
+                if index<0 or index>=len(blocks):return None
+                image=crop(image,blocks[index])
+                return image.crop((0,max(0,image.height-200) if before else 0,image.width,image.height if before else min(200,image.height)))
+            leading=(context(old,left['blocks'],i-1,True),context(new,right['blocks'],k-1,True))
+            trailing=(context(old,left['blocks'],j,False),context(new,right['blocks'],l,False))
+            regions.extend(panels(a,b,output,f'{Path(page).stem}-{width}-{n+1}',dict(page=page,viewport=width),leading,trailing))
             if len(regions)>=120:
                 return regions,True
     return regions,False
