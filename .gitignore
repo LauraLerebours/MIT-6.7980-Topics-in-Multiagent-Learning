@@ -14,6 +14,7 @@
 !/docs/
 !/slides/
 !/.vscode/
+!/.github/
 # Publish configured course slides, while keeping editable deck sources private.
 /slides/*
 !/slides/L00_course_intro.pdf
