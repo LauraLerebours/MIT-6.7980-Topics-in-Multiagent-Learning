@@ -98,6 +98,7 @@ async function main() {
               if(/^https?:\/\//.test(href)) external.push(href);
             }
             const rail='.sidenote,.margin-note,.citation-note,.course-sidenote,.lecture-citation-sidenote,.lecture-citation-details';
+            const describe=e=>e.closest('[data-image-source]')?.getAttribute('data-image-source')||e.getAttribute('src')||e.getAttribute('aria-label')||e.id||(e.innerText||e.textContent||'').replace(/\s+/g,' ').trim().slice(0,90);
             for(const e of article.querySelectorAll('img,svg,.katex-display,.equation,pre,table')) {
               if(!visible(e)||e.closest(rail))continue;
               const r=e.getBoundingClientRect();
@@ -106,9 +107,9 @@ async function main() {
                 const style=getComputedStyle(p);
                 if(['auto','scroll'].includes(style.overflowX))scrollable=true;
                 if(['hidden','clip'].includes(style.overflowX)&&p.scrollWidth>p.clientWidth+4)
-                  add('clipped-content',`${p.tagName}: ${p.textContent.trim().slice(0,90)}`);
+                  add('clipped-content',`${p.tagName}: ${describe(p)}`);
               }
-              if(!scrollable&&(r.left<bounds.left-3||r.right>bounds.right+3))add('content-overflow',`${e.tagName}: ${e.textContent.trim().slice(0,90)}`);
+              if(!scrollable&&(r.left<bounds.left-3||r.right>bounds.right+3))add('content-overflow',`${e.tagName}: ${describe(e)}`);
             }
             const candidates=[...article.querySelectorAll('h1,h2,h3,h4,h5,p,figure,figcaption,img,svg,pre,ul,ol,li,table,details,summary,blockquote,dl,dt,dd,.statement,.proof,.env-title,.env-heading,.equation,.equation-line')]
               .filter(e=>visible(e)&&!e.closest(rail));
@@ -117,8 +118,8 @@ async function main() {
             const data=blocks.map(e=>{
               const r=e.getBoundingClientRect(),cs=getComputedStyle(e);
               const text=(e.innerText||e.textContent||'').replace(/\s+/g,' ').trim();
-              if((r.left<bounds.left-3||r.right>bounds.right+3)) add('content-overflow',`${e.tagName}: ${text.slice(0,90)}`);
-              if(e.scrollWidth>e.clientWidth+4&&e.clientWidth>0 && ['hidden','clip'].includes(cs.overflowX)) add('clipped-content',`${e.tagName}: ${text.slice(0,90)}`);
+              if((r.left<bounds.left-3||r.right>bounds.right+3)) add('content-overflow',`${e.tagName}: ${describe(e)}`);
+              if(e.scrollWidth>e.clientWidth+4&&e.clientWidth>0 && ['hidden','clip'].includes(cs.overflowX)) add('clipped-content',`${e.tagName}: ${describe(e)}`);
               const styles=[e,...e.querySelectorAll('*')].filter(n=>n===e||(!n.closest('.katex')&&(!n.closest('svg')||n.tagName.toLowerCase()==='svg'))).map(n=>{
                 const s=getComputedStyle(n);return [s.fontFamily,s.fontSize,s.fontWeight,s.fontStyle,s.color,s.backgroundColor,s.overflowX,s.lineHeight,s.letterSpacing,s.textAlign,s.textDecoration,s.padding,s.margin,s.border,s.borderRadius,s.display,s.visibility,s.opacity,s.transform,s.position,s.left,s.right,s.top,s.bottom,s.backgroundImage.replace(/\/(before|after)\//g,'/')];});
               const visual=[e,...e.querySelectorAll('img,svg,canvas')].some(n=>/^(img|svg|canvas)$/i.test(n.tagName)&&!n.closest('.katex'));
