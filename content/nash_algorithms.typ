@@ -369,6 +369,8 @@ We make some final remarks about the Lemke-Howson algorithm.
 
 == A worked example <sec-lemke-howson-example>
 
+The examples of this section and the next can also be explored in an #interactive-link("lemke_howson")[interactive version], which steps through the pivots on the simplices, the polytopes, and the tableaux, compares all choices of the dropped label, and runs the algorithm on games of your choice.
+
 Consider the symmetric $3 times 3$ game whose row player's payoff matrix is
 
 $ R = mat(4, 8, 1; 2, 7, 3; 9, 4, 5) . $
