@@ -2,11 +2,12 @@
 import json
 import os
 import re
+import shlex
 from pathlib import Path
 import shutil
 import sys
 
-from common import arguments, finish, prepare, run_check
+from common import arguments, command, finish, prepare, run_check
 from html_diff import compare
 from external_links import audit as audit_external
 
@@ -36,6 +37,12 @@ def main():
     try:
         before,after=prepare(args,report)
         if after:
+            status,chrome=command(['node','-e',"process.stdout.write(require('playwright').chromium.executablePath())"],cwd=scripts)
+            if status:raise RuntimeError('Cannot resolve the pinned Chromium executable')
+            wrapper=args.output/'chromium-ci'
+            wrapper.write_text('#!/bin/sh\nexec '+shlex.quote(chrome.strip())+' --no-sandbox "$@"\n')
+            wrapper.chmod(0o755)
+            site_env={**os.environ,'CHROME_BIN':str(wrapper)}
             findings=[]
             target=Path(os.environ.get('PR_CARGO_TARGET',str(args.output/'cargo-target'))).resolve()
             env={**os.environ,'CARGO_TARGET_DIR':str(target),'CARGO_BUILD_JOBS':'2'}
@@ -63,7 +70,7 @@ def main():
                 if tested['status']!='pass':
                     findings.append(dict(side=side,level='error',code='figure-build-regressions',page='',message='Figure build regression failed; inspect figure-build-regressions.log.'))
                 built=run_check(report,args.output,'site-build',side,
-                    [sys.executable,'scripts/build_site.py','--skip-build'],root,timeout=1500)
+                    [sys.executable,'scripts/build_site.py','--skip-build'],root,timeout=1500,env=site_env)
                 if not (root/'html/index.html').is_file():
                     findings.append(dict(side=side,level='error',code='site-unavailable',page='',message='Site did not build; see site-build log.'))
                     continue
