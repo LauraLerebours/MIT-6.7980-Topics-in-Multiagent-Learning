@@ -1,5 +1,6 @@
 """Compare rendered DOM blocks, ignoring vertical movement caused by insertions."""
 from difflib import SequenceMatcher
+from collections import Counter
 from pathlib import Path
 import json
 
@@ -33,6 +34,8 @@ def differs(a, b):
 def changed_blocks(left, right, old, new):
     a, b = left['blocks'], right['blocks']
     changes = []
+    counts_a=Counter(x['key'] for x in a)
+    counts_b=Counter(x['key'] for x in b)
     def block_changed(x,y):
         if x['styles']!=y['styles'] or abs((x['bottom']-x['top'])-(y['bottom']-y['top']))>2 or abs(x.get('width',0)-y.get('width',0))>2:
             return True
@@ -51,8 +54,9 @@ def changed_blocks(left, right, old, new):
             # Do not call unchanged content a deletion merely because its order changed.
             if tag in ('delete', 'insert'):
                 source, other = (a[i:j], b) if tag == 'delete' else (b[k:l], a)
+                source_counts,other_counts=(counts_a,counts_b) if tag=='delete' else (counts_b,counts_a)
                 source_image, other_image = (old, new) if tag == 'delete' else (new, old)
-                if all(any(x['key'] == y['key'] and x['styles'] == y['styles']
+                if all(source_counts[x['key']]<=other_counts[x['key']] and any(x['key'] == y['key'] and x['styles'] == y['styles']
                            and not differs(crop(source_image, x), crop(other_image, y))
                            for y in other) for x in source):
                     continue

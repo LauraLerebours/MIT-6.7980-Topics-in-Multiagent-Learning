@@ -40,6 +40,12 @@ class DiffTests(unittest.TestCase):
         right['font_hash']='new font bytes'
         self.assertEqual(changed_blocks(left,right,a,b),[(0,1,0,1)])
 
+    def test_removing_one_duplicate_paragraph_is_a_real_deletion(self):
+        image=Image.new('RGB',(100,100),'white')
+        a=[self.block('repeat',0,20),self.block('repeat',40,60)]
+        b=[self.block('repeat',0,20)]
+        self.assertEqual(changed_blocks({'blocks':a},{'blocks':b},image,image),[(1,2,1,1)])
+
     def test_continuation_uses_single_column(self):
         with tempfile.TemporaryDirectory() as tmp:
             regions=panels(Image.new('RGB',(100,100),'white'),Image.new('RGB',(100,3000),'white'),Path(tmp),'test',dict(page='x.html',viewport=390))
