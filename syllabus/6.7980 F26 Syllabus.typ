@@ -22,7 +22,7 @@
      url: "https://www.mit.edu/~gfarina"),
   ),
   other_staff: (
-    (name: "Brian Hu Zhang"),
+    (name: "Brian Hu Zhang", email: "zhangbh@mit.edu", office: "32-G540"),
   ),
   tas: (
     (name: "Kat Fedorova", email: "fedorova@mit.edu", office_hours: "Wednesdays, 2-3 pm, room 32-G5 (lounge of 5th floor, Gates tower)"),
@@ -80,7 +80,7 @@
   #course.meetings
 ]
 
-#item("Other Staff")[#course.other_staff.map(person => person.name).join(", ")]
+#item("Other Staff")[#course.other_staff.map(person => [#person.name (#email(person.email)), office #raw(person.office).]).join(" ")]
 
 #item("Teaching assistants")[
   #for person in course.tas [

@@ -131,7 +131,9 @@ def render_index(config: dict, modules: list[dict], *, stylesheet_version: str =
         f'<a href="mailto:{escape(p["email"], quote=True)}">{escape(p["email"])}</a>'
         f'<span>Office {escape(p["office"])}</span></li>' for p in course['instructors'])
     other_staff = ''.join(
-        f'<li><span class="person-name">{escape(p["name"])}</span></li>'
+        f'<li><span class="person-name">{escape(p["name"])}</span>'
+        f'<a href="mailto:{escape(p["email"], quote=True)}">{escape(p["email"])}</a>'
+        f'<span>Office {escape(p["office"])}</span></li>'
         for p in course['other_staff'])
     tas = ''.join(
         f'<li><span class="person-name">{escape(p["name"])}</span>'
