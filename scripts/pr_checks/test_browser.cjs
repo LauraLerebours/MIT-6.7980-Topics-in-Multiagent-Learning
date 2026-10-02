@@ -16,7 +16,7 @@ test('browser detects wrong accents, malformed math, broken figures and overflow
       const markup=String.raw`<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="katex/katex.min.css">
         <style>body{margin:16px}article{max-width:720px}p{margin:12px 0}</style>
         <article class="lecture-content"><h1>Fixture</h1><p>Stable paragraph.</p>
-        <p><span class="math-katex-source" data-typst-math="overline(body: [μ])">\(${wrong?'\\hat{\\mu}':'\\overline{\\mu}'}\)</span></p>
+        <div class="equation"><span class="math-katex-source" data-typst-math="overline(body: [μ])">\(${wrong?'\\hat{\\mu}':'\\overline{\\mu}'}\)</span></div>
         ${wrong?String.raw`<p style="width:1500px">Overflowing text</p><details><summary>Solution</summary><img width="100" height="50" src="missing.png"></details>
           <p><span class="math-katex-source" data-typst-math="[x]">\(\thisCommandDoesNotExist{x}\)</span></p>`:''}
         </article><script src="katex/katex.min.js"></script><script src="katex/contrib/auto-render.min.js"></script>
@@ -26,6 +26,7 @@ test('browser detects wrong accents, malformed math, broken figures and overflow
     execFileSync(process.execPath,[path.join(__dirname,'browser.cjs'),path.join(tmp,'before'),path.join(tmp,'after'),path.join(tmp,'result')],{timeout:110000,stdio:'pipe'});
     const report=JSON.parse(fs.readFileSync(path.join(tmp,'result/browser.json')));
     assert.equal(report.pages.length,4);
+    assert(report.pages.every(page=>page.blocks.some(block=>block.tag==='DIV')),'Standalone display equations must appear in the visual diff');
     assert.deepEqual(report.findings.filter(x=>x.side==='before'),[]);
     const codes=new Set(report.findings.filter(x=>x.side==='after').map(x=>x.code));
     for(const code of ['math-accent','page-overflow','broken-image','katex-parse'])assert(codes.has(code),`Missing ${code}: ${JSON.stringify(report.findings)}`);

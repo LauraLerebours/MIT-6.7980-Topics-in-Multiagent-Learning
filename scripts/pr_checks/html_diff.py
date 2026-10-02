@@ -3,7 +3,7 @@ from difflib import SequenceMatcher
 from pathlib import Path
 import json
 
-from PIL import Image, ImageChops, ImageDraw, ImageFilter
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
 
 
 def crop(image, block):
@@ -90,7 +90,7 @@ def panels(left, right, output, stem, metadata, leading=(None,None), trailing=(N
         draw = ImageDraw.Draw(canvas)
         x = 12
         for image,label,color in columns:
-            draw.text((x,12),f'{label} | {metadata["viewport"]}px | part {part+1}/{count}',fill=color)
+            draw.text((x,10),f'{label} | {metadata["viewport"]}px | part {part+1}/{count}',fill=color,font=ImageFont.load_default(size=18))
             canvas.paste(image,(x,34))
             x += image.width+12
         name = f'{stem}-{part+1}.png'

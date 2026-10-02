@@ -97,17 +97,17 @@ async function main() {
               }
               if(!scrollable&&(r.left<bounds.left-3||r.right>bounds.right+3))add('content-overflow',`${e.tagName}: ${e.textContent.trim().slice(0,90)}`);
             }
-            const candidates=[...article.querySelectorAll('h1,h2,h3,h4,h5,p,figure,pre,ul,ol,li,table,details,.statement,.proof')]
+            const candidates=[...article.querySelectorAll('h1,h2,h3,h4,h5,p,figure,figcaption,img,svg,pre,ul,ol,li,table,details,summary,blockquote,dl,dt,dd,.statement,.proof,.env-title,.env-heading,.equation,.equation-line')]
               .filter(e=>visible(e)&&!e.closest(rail));
             const selected=new Set(candidates);
-            const blocks=candidates.filter(e=>{for(let p=e.parentElement;p&&p!==article;p=p.parentElement)if(selected.has(p)&&p.getBoundingClientRect().height<1000)return false;return e.getBoundingClientRect().height<1000||!e.querySelector('p,figure,li');});
+            const blocks=candidates.filter(e=>{for(let p=e.parentElement;p&&p!==article;p=p.parentElement)if(selected.has(p)&&p.getBoundingClientRect().height<1000)return false;return e.getBoundingClientRect().height<1000||!e.querySelector('p,figure,figcaption,li,summary,.env-title,.env-heading,.equation,img,svg');});
             const data=blocks.map(e=>{
               const r=e.getBoundingClientRect(),cs=getComputedStyle(e);
-              if((r.left<bounds.left-3||r.right>bounds.right+3)) add('content-overflow',`${e.tagName}: ${e.innerText.slice(0,90)}`);
-              if(e.scrollWidth>e.clientWidth+4&&e.clientWidth>0 && ['hidden','clip'].includes(cs.overflowX)) add('clipped-content',`${e.tagName}: ${e.innerText.slice(0,90)}`);
-              const text=e.innerText.replace(/\s+/g,' ').trim();
+              const text=(e.innerText||e.textContent||'').replace(/\s+/g,' ').trim();
+              if((r.left<bounds.left-3||r.right>bounds.right+3)) add('content-overflow',`${e.tagName}: ${text.slice(0,90)}`);
+              if(e.scrollWidth>e.clientWidth+4&&e.clientWidth>0 && ['hidden','clip'].includes(cs.overflowX)) add('clipped-content',`${e.tagName}: ${text.slice(0,90)}`);
               const styles=[e,...e.querySelectorAll('img,svg,[data-typst-math]')].map(n=>{const s=getComputedStyle(n);return [s.fontFamily,s.fontSize,s.fontWeight,s.fontStyle,s.color,s.backgroundColor,s.overflowX];});
-              return {key:text||e.getAttribute('data-image-source')||e.tagName,tag:e.tagName,id:e.id,
+              return {key:text||e.getAttribute('data-image-source')||e.getAttribute('src')||e.tagName,tag:e.tagName,id:e.id,
                 top:Math.max(0,r.top-bounds.top),bottom:r.bottom-bounds.top,styles};
             });
             return {bounds:{width:bounds.width,height:bounds.height},blocks:data,issues,maths,external};
