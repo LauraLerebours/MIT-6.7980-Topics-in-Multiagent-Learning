@@ -8,7 +8,8 @@ Both also have a **Run workflow** input for an existing open PR number.
 
 **Course source pre-screen** checks whether the PR merges with its current target
 branch, validates note headers and syllabus metadata, checks configured assets and
-cross-lecture references, and runs the repository's Python regression suite.
+cross-lecture references, and runs the repository's source Python regression suite.
+Figure tests that need a compiled exporter run in the HTML job instead.
 Whitespace errors are warnings. Individual test failures already present on the
 target branch are listed as existing issues; new failing tests fail the check.
 The target and proposed-merge logs remain available for investigation.

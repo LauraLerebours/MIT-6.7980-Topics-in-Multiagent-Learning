@@ -15,7 +15,7 @@ def main():
                 run_check(report, args.output, "course-consistency", side,
                           [sys.executable, str(Path(__file__).with_name("source_probe.py")), str(root)], root)
                 run_check(report, args.output, "python-regressions", side,
-                          [sys.executable, str(Path(__file__).with_name('python_suite.py')), str(root), str(args.output/f'{side}-tests.json')],
+                          [sys.executable, str(Path(__file__).with_name('python_suite.py')), str(root), str(args.output/f'{side}-tests.json'),'--source-only'],
                           root, timeout=1200)
             baseline = {x["name"]: x for x in report["checks"] if x["side"] == "before"}
             for check in (x for x in report["checks"] if x["side"] == "after" and x["status"] == "fail"):
@@ -35,7 +35,7 @@ def main():
             (args.output / "whitespace.log").write_text(log, encoding="utf-8")
             if status:
                 report["findings"].append(dict(level="warning", code="whitespace", page="", message="Changed lines contain whitespace errors; see whitespace.log."))
-            report["coverage"]["source"] = "Merge conflicts, syllabus/header consistency, configured assets, cross-lecture labels, and the repository's Python regression suite. Exporter Rust tests run in HTML review."
+            report["coverage"]["source"] = "Merge conflicts, syllabus/header consistency, configured assets, cross-lecture labels, and source Python regressions. Exporter-dependent figure tests and Rust tests run in HTML review."
     except Exception as error:
         report["findings"].append(dict(level="error", code="check-incomplete", page="", message=str(error)[:1000]))
     return finish(args, report)

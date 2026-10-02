@@ -43,6 +43,10 @@ class DiffTests(unittest.TestCase):
         findings=classify([f('before','old'),f('after','old'),f('after','new')])
         self.assertEqual([x['level'] for x in findings],['warning','error'])
 
+    def test_incomplete_browser_audit_never_becomes_a_passing_baseline_warning(self):
+        findings=classify([dict(side=side,code='browser-incomplete',page='x.html',message='timeout',level='error') for side in ('before','after')])
+        self.assertEqual(findings[0]['level'],'error')
+
 
 class PublicationTests(unittest.TestCase):
     def test_rejects_wrong_commit_and_traversal(self):

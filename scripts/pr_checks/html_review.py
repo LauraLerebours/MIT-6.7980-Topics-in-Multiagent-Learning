@@ -1,6 +1,7 @@
 """Build both integration snapshots and audit/diff their rendered HTML."""
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import sys
@@ -21,7 +22,8 @@ def classify(findings):
             continue
         seen.add(key(x))
         x=dict(x)
-        x['inherited']=key(x) in baseline
+        incomplete=x['code'].endswith(('-incomplete','-unavailable')) or x['code']=='screenshot-limit'
+        x['inherited']=key(x) in baseline and not incomplete
         if x['inherited']:
             x['level']='warning'
         result.append(x)
@@ -49,7 +51,17 @@ def main():
                 tested=run_check(report,args.output,'exporter-tests',side,
                     ['cargo','test','--release','--locked','--manifest-path','html-exporter/Cargo.toml'],root,timeout=1200,env=env)
                 if tested['status']!='pass':
-                    findings.append(dict(side=side,level='error',code='exporter-tests',page='',message='Exporter regression tests failed; inspect the test log.'))
+                    failed=re.findall(r'^test ([\w:]+) \.\.\. FAILED', (args.output/tested['log']).read_text(),re.M)
+                    for name in failed or ['Exporter test run did not finish successfully; inspect the test log.']:
+                        findings.append(dict(side=side,level='error',code='exporter-test' if failed else 'exporter-tests-incomplete',page='',message=name))
+                tested=run_check(report,args.output,'svg-regressions',side,
+                    [sys.executable,'-m','unittest','discover','-s','scripts','-p','test_html_svg_text.py'],root,timeout=300)
+                if tested['status']!='pass':
+                    findings.append(dict(side=side,level='error',code='svg-regressions',page='',message='Selectable SVG figure regression failed; inspect svg-regressions.log.'))
+                tested=run_check(report,args.output,'figure-build-regressions',side,
+                    [sys.executable,'-m','unittest','discover','-s','scripts','-p','test_build_figures.py'],root,timeout=300)
+                if tested['status']!='pass':
+                    findings.append(dict(side=side,level='error',code='figure-build-regressions',page='',message='Figure build regression failed; inspect figure-build-regressions.log.'))
                 built=run_check(report,args.output,'site-build',side,
                     [sys.executable,'scripts/build_site.py','--skip-build'],root,timeout=1500)
                 if not (root/'html/index.html').is_file():
