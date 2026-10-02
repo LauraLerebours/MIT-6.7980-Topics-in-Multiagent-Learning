@@ -273,13 +273,17 @@ def render_index(config: dict, modules: list[dict], *, stylesheet_version: str =
   <dl><div><dt>Lectures</dt><dd>{escape(course['days'])}<br><span class="lecture-time">{escape(course['time'])}</span></dd></div><div><dt>Room</dt><dd>{escape(course['room'])}</dd></div></dl>
 </section>
 <section id="people" class="course-people" aria-label="Teaching team">
-  <h2>Instructors</h2>
-  <ul class="instructor-list">{instructors}</ul>
-  <p class="office-hours">{escape(course['meetings'])}</p>
-  <h2 id="other-staff-title">Other Staff</h2>
-  <ul class="other-staff-list" aria-labelledby="other-staff-title">{other_staff}</ul>
-  <h2 id="ta-title">Teaching assistants</h2>
-  <ul class="ta-list" aria-labelledby="ta-title">{tas}</ul>
+  <div class="course-instructors">
+    <h2>Instructors</h2>
+    <ul class="instructor-list">{instructors}</ul>
+    <p class="office-hours">{escape(course['meetings'])}</p>
+    <h2 id="other-staff-title">Other Staff</h2>
+    <ul class="other-staff-list" aria-labelledby="other-staff-title">{other_staff}</ul>
+  </div>
+  <div class="course-assistants">
+    <h2 id="ta-title">Teaching assistants</h2>
+    <ul class="ta-list" aria-labelledby="ta-title">{tas}</ul>
+  </div>
 </section>
 <section class="course-repository" aria-labelledby="repository-title"><h2 id="repository-title"><a href="{escape(course['github'], quote=True)}">GitHub repository <span aria-hidden="true">↗</span></a></h2></section>
 <section class="course-prerequisites" aria-labelledby="prerequisites-title"><h2 id="prerequisites-title">Prerequisites</h2>{paragraphs(prose['Prerequisites'])}</section>

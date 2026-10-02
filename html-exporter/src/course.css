@@ -126,14 +126,7 @@
   .course-layout .course-work { grid-area: auto; grid-row: 7; }
   .course-details dl > div { grid-template-columns: 60px 1fr; }
   .course-people { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 22px; align-items: start; }
-  .course-people > h2:first-child { grid-column: 1; grid-row: 1; }
-  .course-people .instructor-list { grid-column: 1; grid-row: 2; }
-  .course-people .instructor-list + .office-hours { grid-column: 1; grid-row: 3; }
-  .course-people #other-staff-title { grid-column: 1; grid-row: 4; }
-  .course-people .other-staff-list { grid-column: 1; grid-row: 5; }
-  .course-people #ta-title { grid-column: 2; grid-row: 1; margin-top: 0; }
-  .course-people .ta-list { grid-column: 2; grid-row: 2; }
-  .course-people .ta-list + .office-hours { grid-column: 2; grid-row: 3; }
+  .course-people #ta-title { margin-top: 0; }
   .course-home .person-name { font-size: 0.875rem; }
   .instructor-list, .other-staff-list, .ta-list { font-size: 0.75rem; overflow-wrap: anywhere; }
   .course-home .course-sidebar h2 { font-size: 1rem; }
