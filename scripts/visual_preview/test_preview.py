@@ -23,6 +23,23 @@ def pdf(path, lines, per_page=20, bold=False, figure=False):
     doc.close()
 
 
+def framed_pdf(path, lines, per_page, proof=False):
+    doc = pymupdf.open()
+    for start in range(0, len(lines), per_page):
+        page = doc.new_page(width=595, height=842)
+        count = min(per_page, len(lines) - start)
+        if proof:
+            page.draw_rect((95, 110, 95.85, 132 + (count - 1) * 24),
+                           color=None, fill=(.6, .6, .6))
+        else:
+            page.draw_rect((95, 110, 505, 140 + (count - 1) * 24),
+                           color=(.8, .8, .8), fill=(.95, .95, .95), width=.425)
+        for row, text in enumerate(lines[start:start + per_page]):
+            page.insert_text((107, 130 + row * 24), text, fontsize=12)
+    doc.save(path)
+    doc.close()
+
+
 class PreviewTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -52,6 +69,29 @@ class PreviewTests(unittest.TestCase):
     def test_same_text_font_change(self):
         pdf(self.a, ["Matrix A and vector x"])
         pdf(self.b, ["Matrix A and vector x"], bold=True)
+        self.assertEqual(len(self.compare()), 1)
+
+    def test_theorem_and_proof_repagination_has_no_changes(self):
+        lines = [f"Theorem or proof line {i}." for i in range(12)]
+        for proof in (False, True):
+            with self.subTest(proof=proof):
+                framed_pdf(self.a, lines, 3, proof=proof)
+                framed_pdf(self.b, lines, 8, proof=proof)
+                self.assertEqual(self.compare(), [])
+
+    def test_repagination_still_detects_edit_inside_frame(self):
+        lines = [f"Unchanged property {i}." for i in range(12)]
+        changed = lines[:5] + ["A genuinely new property."] + lines[6:]
+        framed_pdf(self.a, lines, 3)
+        framed_pdf(self.b, changed, 8)
+        result = self.compare()
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["before_pages"], "2,3")
+        self.assertEqual(result[0]["after_pages"], "1")
+
+    def test_bibliography_capitalization_is_a_real_change(self):
+        pdf(self.a, ["Journal of the Society for industrial and Applied Mathematics"])
+        pdf(self.b, ["Journal of the Society for Industrial and Applied Mathematics"])
         self.assertEqual(len(self.compare()), 1)
 
     def test_figure_only_change(self):

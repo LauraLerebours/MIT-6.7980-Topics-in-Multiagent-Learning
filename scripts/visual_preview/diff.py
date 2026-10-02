@@ -26,6 +26,43 @@ class Band:
     key: str
 
 
+def content_ink(page, clip, image):
+    """Ignore course box/proof rules when finding gaps, not in the rendered crop.
+
+    A vertical rule otherwise joins an entire theorem/proof into one band. Its
+    band key then changes whenever a page break splits the box, even though all
+    its lines are unchanged. Ignore only the neutral, thin template decorations;
+    keep figure strokes and text (including punctuation) available for matching.
+    """
+    ink = np.min(np.asarray(image), axis=2) < 225
+
+    def erase(rect):
+        x0 = max(0, int((rect.x0 - clip.x0) * 2) - 2)
+        y0 = max(0, int((rect.y0 - clip.y0) * 2) - 2)
+        x1 = min(image.width, int((rect.x1 - clip.x0) * 2) + 3)
+        y1 = min(image.height, int((rect.y1 - clip.y0) * 2) + 3)
+        if x1 > x0 and y1 > y0:
+            ink[y0:y1, x0:x1] = False
+
+    for drawing in page.get_drawings():
+        rect = drawing["rect"]
+        color = drawing["color"] or drawing["fill"]
+        if not color or max(color) - min(color) > .02 or not .45 < min(color) < .99:
+            continue
+        if (drawing["type"] == "f" and rect.width < 1.5 and rect.height > 12
+                and .58 < min(color) < .62 and rect.x0 < page.rect.width * .17):
+            erase(rect)  # Proof sidebar.
+        elif ("s" in drawing["type"] and drawing["width"] < 1
+              and rect.width > page.rect.width * .55 and rect.height > 8):
+            # Thin gray outline of a full-width theorem box, including corners.
+            for edge in (pymupdf.Rect(rect.x0, rect.y0, rect.x1, rect.y0 + 2),
+                         pymupdf.Rect(rect.x0, rect.y1 - 2, rect.x1, rect.y1),
+                         pymupdf.Rect(rect.x0, rect.y0, rect.x0 + 2, rect.y1),
+                         pymupdf.Rect(rect.x1 - 2, rect.y0, rect.x1, rect.y1)):
+                erase(edge)
+    return ink
+
+
 def bands(path: Path) -> list[Band]:
     result = []
     with pymupdf.open(path) as document:
@@ -34,7 +71,7 @@ def bands(path: Path) -> list[Band]:
             clip = pymupdf.Rect(32, 90, page.rect.width - 32, page.rect.height - 96)
             pix = page.get_pixmap(matrix=pymupdf.Matrix(2, 2), clip=clip, alpha=False)
             image = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-            ink = np.min(np.asarray(image), axis=2) < 225
+            ink = content_ink(page, clip, image)
             rows = np.any(ink, axis=1)
             # Keep every text line (including detached accents) in a single band.
             lines = []

@@ -40,8 +40,9 @@ verify inline rendering in the target client.
 - Crops preserve each line/figure rendering but compact vertical gaps. They are
   for content review, not page-layout proofing. Running footers and page margins
   are excluded using the current course template's dimensions.
-- Reflow of framed theorems across page boundaries can appear as a local layout
-  change. Very large edits are split between complete rendered bands, with
+- Theorem borders and proof sidebars do not join separate text lines when
+  matching content, so a page break through an unchanged theorem/proof does not
+  appear as a deletion and insertion. Very large edits are split between complete rendered bands, with
   preceding context in the first tile and following context in the last.
   Corresponding context is vertically aligned. Middle tiles containing only
   inserted/deleted content use a single column. HTML output is not compared.
