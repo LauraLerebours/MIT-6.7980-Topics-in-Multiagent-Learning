@@ -481,9 +481,13 @@ Action $i$ of $cal(G)_2$ is represented at $\( vx \, vy \)$ exactly when $i$ is 
     )
   ] <fig-lemke-howson-bimatrix>
 
-  Dropping a different label gives a different path:
+  Dropping a different label gives a different path, as @tab-lemke-howson-compare-bimatrix shows.
 
-  #align(center)[
+  #figure(
+    kind: table,
+    supplement: [Table],
+    caption: [Comparing the five choices of dropped label for the $3 times 2$ game above.],
+  )[
     #table(
       stroke: none,
       columns: 4,
@@ -496,7 +500,7 @@ Action $i$ of $cal(G)_2$ is represented at $\( vx \, vy \)$ exactly when $i$ is 
       [$4$], [$1 \, 4$], [$2$], [$\( \( 1 \, 0 \, 0 \) \, \( 1 \, 0 \) \)$],
       [$5$], [$3 \, 4 \, 2 \, 5$], [$4$], [$\( \( 0 \, 1\/3 \, 2\/3 \) \, \( 1\/3 \, 2\/3 \) \)$],
     )
-  ]
+  ] <tab-lemke-howson-compare-bimatrix>
 
   As in the symmetric example, one equilibrium, $\( \( 4\/5 \, 1\/5 \, 0 \) \, \( 2\/3 \, 1\/3 \) \)$, is not reached from the artificial equilibrium with any label. It is the other endpoint of paths that start at an equilibrium: for example, dropping label $1$ at $\( \( 0 \, 1\/3 \, 2\/3 \) \, \( 1\/3 \, 2\/3 \) \)$ leads to it in two pivots.
 ]
