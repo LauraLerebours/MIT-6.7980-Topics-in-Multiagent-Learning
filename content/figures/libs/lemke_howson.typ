@@ -95,6 +95,21 @@
   tab
 }
 
+// Pivot until the basis is `target` (a set of columns, as an array), to
+// start a path at a vertex other than 0.
+#let _move-to-basis(tab, target) = {
+  for col in target {
+    if col in tab.basis { continue }
+    let row = range(tab.basis.len()).find(r => tab.basis.at(r) not in target and tab.T.at(r).at(col).at(0) != 0)
+    assert(row != none, message: "degenerate starting vertex")
+    tab = _pivot(tab, row, col)
+  }
+  tab
+}
+
+// Accept 3, (1, 3) or an already reduced rational.
+#let _rat(v) = if type(v) == int { _q(v) } else { _q(v.at(0), d: v.at(1)) }
+
 #let _normalize(v) = {
   let s = v.fold(_q(0), _add)
   v.map(a => _div(a, s))
@@ -138,7 +153,10 @@
 
 // Labels 1..m are Row's actions and m+1..m+n Column's. `states.at(t)` is the
 // pair (x, y) after t pivots; each pivot records the polytope it happens in.
-#let lemke-howson-bimatrix(R, C, k) = {
+// By default the path starts at the artificial equilibrium (0, 0); pass
+// `start: (x, y)`, a Nash equilibrium of a nondegenerate game given as mixed
+// strategies (entries 3 or (1, 3)), to drop label k there instead.
+#let lemke-howson-bimatrix(R, C, k, start: none) = {
   let m = R.len()
   let n = R.at(0).len()
   let CT = range(n).map(j => range(m).map(i => C.at(i).at(j)))
@@ -150,9 +168,23 @@
     range(m).map(i => _value(tabs.P, i)),
     range(n).map(j => _value(tabs.Q, j)),
   )
+  if start != none {
+    // At an equilibrium, the nonzero (basic) variables are the supports and
+    // the slacks of the actions that are not best responses.
+    let (x, y) = start.map(v => v.map(_rat))
+    let dot(row, v) = row.zip(v).fold(_q(0), (acc, (a, b)) => _add(acc, _mul(_q(a), b)))
+    let u = CT.map(row => dot(row, x))
+    let w = R.map(row => dot(row, y))
+    let best(v) = v.fold(v.first(), (a, b) => if _cmp(b, a) > 0 { b } else { a })
+    tabs.P = _move-to-basis(tabs.P, range(m).filter(i => x.at(i).at(0) != 0)
+      + range(n).filter(j => _cmp(u.at(j), best(u)) < 0).map(j => m + j))
+    tabs.Q = _move-to-basis(tabs.Q, range(n).filter(j => y.at(j).at(0) != 0)
+      + range(m).filter(i => _cmp(w.at(i), best(w)) < 0).map(i => n + i))
+  }
   let states = (vertex(tabs),)
   let pivots = ()
-  let side = if k <= m { "P" } else { "Q" }
+  // Drop label k in the polytope where its variable is zero (nonbasic).
+  let side = if tabs.P.vars.position(v => v.at(2) == k) not in tabs.P.basis { "P" } else { "Q" }
   let label = k
   while true {
     let tab = tabs.at(side)
@@ -175,6 +207,33 @@
   }
   let (x, y) = states.last()
   (states: states, pivots: pivots, equilibrium: (_normalize(x), _normalize(y)))
+}
+
+// The pairing induced by each label. `equilibria` lists the Nash equilibria
+// of a nondegenerate game as (x, y) mixed strategies; node 0 is the
+// artificial equilibrium and node i is `equilibria.at(i - 1)`. Returns, for
+// every label k, the pairs (a, b, pivots) of nodes joined by a k-path.
+#let lemke-howson-pairings(R, C, equilibria) = {
+  let m = R.len()
+  let n = R.at(0).len()
+  let eqs = equilibria.map(e => e.map(v => v.map(_rat)))
+  let node(x, y) = if x.all(a => a.at(0) == 0) { 0 } else {
+    let found = eqs.position(e => e == (_normalize(x), _normalize(y)))
+    assert(found != none, message: "path ended at an equilibrium missing from the list")
+    found + 1
+  }
+  range(1, m + n + 1).map(k => {
+    let pairs = ()
+    let seen = ()
+    for a in range(eqs.len() + 1) {
+      if a in seen { continue }
+      let run = lemke-howson-bimatrix(R, C, k, start: if a == 0 { none } else { equilibria.at(a - 1) })
+      let b = node(..run.states.last())
+      seen += (a, b)
+      pairs.push((a, b, run.pivots.len()))
+    }
+    pairs
+  })
 }
 
 // ---------------------------------------------------------------------------

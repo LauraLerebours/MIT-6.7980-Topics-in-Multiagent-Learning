@@ -236,15 +236,28 @@ class LectureMathChecks(unittest.TestCase):
             x, y = steps[-1][3]
             self.assertEqual(([s[2] for s in steps], (normalize(x), normalize(y))), (sequence, end))
 
-        # Dropping label 1 at the mixed equilibrium reaches the third one in two pivots.
-        G2 = symmetrize(R, C)
-        x, y = mixed
-        z = x + y
-        u = [sum(G2[i][j] * z[j] for j in range(5)) for i in range(5)]
-        start = {i for i in range(5) if z[i]} | {5 + i for i in range(5) if u[i] != max(u[:3] if i < 3 else u[3:])}
-        vertices, picked = symmetric_lemke_howson(G2, 1, basis=start)
-        self.assertEqual(len(picked), 2)
+        # Pairings induced by each label (section "Different labels, different
+        # pairings"), with E_0 the artificial equilibrium.
+        E = [pure, other, mixed]
+        self.assertEqual(pairings(R, C, E), {
+            k: {frozenset({0, 1}), frozenset({2, 3})} if k in (1, 3, 4) else {frozenset({0, 3}), frozenset({1, 2})}
+            for k in range(1, 6)})
+        # Exercise: from E_3 dropping label 1, via x = (2/7, 1/14, 0), to E_2.
+        vertices, picked = path_from(R, C, mixed, 1)
+        self.assertEqual(vertices[0], (0, F(1, 8), F(1, 4), F(1, 12), F(1, 6)))
+        self.assertEqual((vertices[1][:3], vertices[2][3:], picked), ((F(2, 7), F(1, 14), 0), (F(2, 9), F(1, 9)), [3, 1]))
         self.assertEqual((normalize(vertices[-1][:3]), normalize(vertices[-1][3:])), other)
+
+        R5, C5 = [[8, 1, 8], [9, 4, 0], [5, 3, 7]], [[5, 1, 8], [9, 1, 7], [5, 8, 6]]
+        E5 = [((1, 0, 0), (0, 0, 1)), ((0, 1, 0), (1, 0, 0)), ((F(2, 5), F(3, 5), 0), (F(8, 9), 0, F(1, 9))),
+              ((F(2, 9), 0, F(7, 9)), (0, F(1, 3), F(2, 3))), ((0, F(1, 4), F(3, 4)), (0, F(7, 8), F(1, 8)))]
+        self.assertEqual(sorted(support_equilibria(R5, C5)), sorted(E5))
+        pair = lambda *ps: {frozenset(p) for p in ps}
+        self.assertEqual(pairings(R5, C5, E5), {
+            1: pair((0, 1), (2, 3), (4, 5)), 6: pair((0, 1), (2, 3), (4, 5)),
+            2: pair((0, 2), (1, 3), (4, 5)), 4: pair((0, 2), (1, 3), (4, 5)),
+            3: pair((0, 5), (1, 4), (2, 3)), 5: pair((0, 2), (1, 4), (3, 5))})
+        self.assertEqual([len(bimatrix_lemke_howson(R5, C5, k)) for k in range(1, 7)], [2, 2, 4, 2, 3, 2])
 
         # The symmetric algorithm on [[0, R], [C^T, 0]] repeats the asymmetric pivots.
         rng = random.Random(6798)
@@ -341,6 +354,37 @@ def bimatrix_lemke_howson(R, C, k):
     Q = tableau(R, list(range(m + 1, m + n + 1)) + list(range(1, m + 1)))
     return [(side, dropped, picked, (value(P, range(m)), value(Q, range(n))))
             for side, dropped, picked in pivot_path({'P': P, 'Q': Q}, k, 'P' if k <= m else 'Q')]
+
+
+def path_from(R, C, equilibrium, k):
+    """Drop label k at a Nash equilibrium of a nondegenerate game, using the
+    symmetrized game (whose pivots match the asymmetric version)."""
+    m, n = len(R), len(R[0])
+    G2 = symmetrize(R, C)
+    z = tuple(equilibrium[0]) + tuple(equilibrium[1])
+    u = [sum(G2[i][j] * z[j] for j in range(m + n)) for i in range(m + n)]
+    best = lambda i: max(u[:m]) if i < m else max(u[m:])
+    basis = {i for i in range(m + n) if z[i]} | {m + n + i for i in range(m + n) if u[i] != best(i)}
+    return symmetric_lemke_howson(G2, k, basis=basis)
+
+
+def pairings(R, C, equilibria):
+    """For each label, the pairs of endpoints {E_0, ..., E_N} joined by its paths."""
+    m, n = len(R), len(R[0])
+
+    def node(z):
+        if not any(z):
+            return 0
+        return 1 + equilibria.index((normalize(z[:m]), normalize(z[m:])))
+
+    result = {}
+    for k in range(1, m + n + 1):
+        ends = [node(symmetric_lemke_howson(symmetrize(R, C), k)[0][-1])]
+        pairs = {frozenset({0, ends[0]})}
+        for i, equilibrium in enumerate(equilibria, 1):
+            pairs.add(frozenset({i, node(path_from(R, C, equilibrium, k)[0][-1])}))
+        result[k] = pairs
+    return result
 
 
 def support_equilibria(R, C, symmetric=False):

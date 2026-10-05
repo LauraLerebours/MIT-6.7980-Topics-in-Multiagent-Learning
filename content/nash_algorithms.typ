@@ -505,6 +505,69 @@ Action $i$ of $cal(G)_2$ is represented at $\( vx \, vy \)$ exactly when $i$ is 
   As in the symmetric example, one equilibrium, $\( \( 4\/5 \, 1\/5 \, 0 \) \, \( 2\/3 \, 1\/3 \) \)$, is not reached from the artificial equilibrium with any label. It is the other endpoint of paths that start at an equilibrium: for example, dropping label $1$ at $\( \( 0 \, 1\/3 \, 2\/3 \) \, \( 1\/3 \, 2\/3 \) \)$ leads to it in two pivots.
 ]
 
+== Different labels, different pairings <sec-lemke-howson-pairing>
+
+Fix a non-degenerate game and a label $k$. As in the proof of Theorem~#ref(label("thm:Lemke-Howson's correctness"), supplement: none), the pairs of vertices $\( vx \, vy \) in P times Q$ that have every label except possibly $k$ form a graph made of paths and cycles. The endpoints of the paths are exactly the completely labeled pairs: the artificial equilibrium, which we denote $E_0$, and the Nash equilibria $E_1 \, ... \, E_N$. Each path joins two endpoints, so the paths for label $k$ _pair up_ $E_0 \, E_1 \, ... \, E_N$, and the algorithm can start at any endpoint: dropping label $k$ at $E_i$ follows the path to the equilibrium paired with $E_i$. Since $E_0$ is paired with exactly one equilibrium, the remaining equilibria are paired among themselves, and $N$ is odd.
+
+This raises two questions. If a different label is dropped, can the algorithm reach a different equilibrium? And does the pairing itself change? The answer to both is yes, and small examples already show it. @fig-lemke-howson-pairings draws the pairing for every label of two games.
+
+#figure(caption: [The pairings of the endpoints $E_0 \, E_1 \, ...$ induced by each label, in (a) the $3 times 2$ game of @sec-lemke-howson-bimatrix and (b) the $3 times 3$ game below. Two endpoints are joined when the path of that label connects them; $E_0$ (shaded) is the artificial equilibrium.])[
+  #image(
+    "figures/nash_algorithms/pairings.svg",
+    width: 100%,
+    alt: "For each dropped label, the equilibria of two games drawn on a circle, with the pairs joined by Lemke-Howson paths connected by colored segments.",
+  )
+] <fig-lemke-howson-pairings>
+
+*The $3 times 2$ game.* Number its equilibria as in @sec-lemke-howson-bimatrix:
+
+$ E_1 = \( \( 1 \, 0 \, 0 \) \, \( 1 \, 0 \) \) \, quad E_2 = \( \( 4\/5 \, 1\/5 \, 0 \) \, \( 2\/3 \, 1\/3 \) \) \, quad E_3 = \( \( 0 \, 1\/3 \, 2\/3 \) \, \( 1\/3 \, 2\/3 \) \) . $
+
+Labels $1$, $3$, and $4$ induce the pairing ${ E_0 \, E_1 } \, { E_2 \, E_3 }$, while labels $2$ and $5$ induce ${ E_0 \, E_3 } \, { E_1 \, E_2 }$. So the algorithm, started at $E_0$, reaches $E_1$ or $E_3$ depending on the label, and the pairing of the two remaining endpoints changes with it. The equilibrium $E_2$ is never paired with $E_0$. It can still be found by following two paths in sequence: drop label $2$ at $E_0$ to reach $E_3$, then drop label $1$ at $E_3$ to reach $E_2$.
+
+*A $3 times 3$ game.* The game
+
+$ R = mat(8, 1, 8; 9, 4, 0; 5, 3, 7) \, quad C = mat(5, 1, 8; 9, 1, 7; 5, 8, 6) $
+
+is non-degenerate and has five equilibria:
+
+$
+  E_1 = \( \( 1 \, 0 \, 0 \) \, \( 0 \, 0 \, 1 \) \) \, quad E_2 = \( \( 0 \, 1 \, 0 \) \, \( 1 \, 0 \, 0 \) \) \, quad E_3 = \( \( 2\/5 \, 3\/5 \, 0 \) \, \( 8\/9 \, 0 \, 1\/9 \) \) \, \
+  E_4 = \( \( 2\/9 \, 0 \, 7\/9 \) \, \( 0 \, 1\/3 \, 2\/3 \) \) \, quad E_5 = \( \( 0 \, 1\/4 \, 3\/4 \) \, \( 0 \, 7\/8 \, 1\/8 \) \) .
+$
+
+Its six labels induce four different pairings, shown in @tab-lemke-howson-pairings.
+
+#figure(
+  kind: table,
+  supplement: [Table],
+  caption: [The pairings induced by each label in the $3 times 3$ game above, and the number of pivots from $E_0$ to its partner.],
+)[
+  #table(
+    stroke: none,
+    columns: 3,
+    align: center + horizon,
+    inset: .5em,
+    table.header[*Labels*][*Pairing*][*Pivots from* $E_0$],
+    [$1$ and $6$], [${ E_0 \, E_1 } \, { E_2 \, E_3 } \, { E_4 \, E_5 }$], [$2$],
+    [$2$ and $4$], [${ E_0 \, E_2 } \, { E_1 \, E_3 } \, { E_4 \, E_5 }$], [$2$],
+    [$3$], [${ E_0 \, E_5 } \, { E_1 \, E_4 } \, { E_2 \, E_3 }$], [$4$],
+    [$5$], [${ E_0 \, E_2 } \, { E_1 \, E_4 } \, { E_3 \, E_5 }$], [$3$],
+  )
+] <tab-lemke-howson-pairings>
+
+Started at $E_0$, the algorithm finds $E_1$, $E_2$, or $E_5$, depending on the label. Different labels can induce the same pairing, as labels $1$ and $6$ do, and labels can agree on the partner of $E_0$ but not on the rest, as labels $2$, $4$, and $5$ do. The equilibria $E_3$ and $E_4$ are never paired with $E_0$, but they can again be reached by following paths with different labels in sequence: $E_0 -> E_2 -> E_3$ with labels $2$ and $1$, and $E_0 -> E_1 -> E_4$ with labels $1$ and $3$. In both examples, every equilibrium can be reached from $E_0$ in this way.
+
+The #interactive-link("lemke_howson")[interactive version] draws these pairings for any game you enter.
+
+#exercise[
+  In the $3 times 2$ game, start at the vertex $\( vx \, vy \) = \( \( 0 \, 1\/8 \, 1\/4 \) \, \( 1\/12 \, 1\/6 \) \)$ of $P times Q$, which corresponds to $E_3$, and drop label $1$. Carry out the pivots by hand, listing the labels of $vx$ and of $vy$ after each one, and check that the path ends at $E_2$ after two pivots.
+]
+
+#solution[
+  At the start, $vx$ has labels $1 \, 4 \, 5$ and $vy$ has labels $2 \, 3$. Dropping label $1$ increases $x_1$ in $P$. The first inequality to become tight is $x_3 >= 0$, giving $vx = \( 2\/7 \, 1\/14 \, 0 \)$ with labels $3 \, 4 \, 5$. Label $3$ is now duplicate, so it is dropped in $Q$: the inequality $\( R vy \)_3 <= 1$ is un-tightened, and $\( R vy \)_1 <= 1$ becomes tight at $vy = \( 2\/9 \, 1\/9 \)$, with labels $1 \, 2$. Label $1$ is back, and normalizing gives $\( \( 4\/5 \, 1\/5 \, 0 \) \, \( 2\/3 \, 1\/3 \) \) = E_2$.
+]
+
 = Bibliography for this lecture
 
 #lec_bibliography("meta/refs.bib", title: none)
